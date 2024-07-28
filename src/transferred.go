@@ -13,10 +13,10 @@ var trans map[string]uint64 = make(map[string]uint64)
 var m sync.Mutex
 var transfunc transFunc
 
-func Transferred(sourcePort, destinationAddress string, f transFunc) {
+func Transferred(value uint64, sourcePort, destinationAddress string, f transFunc) {
 	// sourcePort := ":8085"
 	// destinationAddress := "127.0.0.1:57890"
-	trans[sourcePort] = 0
+	trans[sourcePort] = value
 	transfunc = f
 
 	listener, err := net.Listen("tcp", sourcePort)
