@@ -3,11 +3,15 @@ package src
 import (
 	"TRAFforward/src/models"
 	"encoding/json"
+	"fmt"
+	"log"
+	"sync"
 	"time"
 
 	"os"
 
 	"github.com/google/uuid"
+	"github.com/robfig/cron"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -78,4 +82,53 @@ func InitConfig() Config {
 	var cfgJson Config
 	json.Unmarshal(data, &cfgJson)
 	return cfgJson
+}
+
+func FormatUse(use uint64) string {
+	const (
+		KB = 1 << (10 * (iota + 1))
+		MB
+		GB
+		TB
+	)
+
+	switch {
+	case use >= TB:
+		return fmt.Sprintf("%.2f TB", float64(use)/TB)
+	case use >= GB:
+		return fmt.Sprintf("%.2f GB", float64(use)/GB)
+	case use >= MB:
+		return fmt.Sprintf("%.2f MB", float64(use)/MB)
+	case use >= KB:
+		return fmt.Sprintf("%.2f KB", float64(use)/KB)
+	default:
+		return fmt.Sprintf("%d B", use)
+	}
+}
+
+func RunTransferred(value uint64, sourcePort string, destinationAddress string) {
+	var m sync.Mutex
+	var use uint64 = 1 //值为0时会重置使用量
+	go Transferred(value, sourcePort, destinationAddress, func(_use uint64, _cur int) uint {
+		log.Printf("30003: %d, %s", _use, FormatUse(_use))
+		if use == 0 {
+			log.Printf("reset use %d,%s", _use, FormatUse(_use))
+			use = 1
+			return 1
+		} else {
+			use = _use
+		}
+		return 100 //0停止 1重新统计
+	})
+	log.Printf("任务执行时间：%s", time.Now())
+	c := cron.New()
+	c.AddFunc("@every 1m", func() {
+		log.Printf("任务执行时间：%s,%d,%s", time.Now(), use, FormatUse(use))
+		m.Lock()
+		defer m.Unlock()
+		//需要统计流量
+
+		use = 0 //重置状态
+	})
+	c.Start()
 }

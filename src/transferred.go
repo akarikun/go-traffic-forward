@@ -7,7 +7,7 @@ import (
 	"sync"
 )
 
-type transFunc func(uint64)
+type transFunc func(uint64, int) uint
 
 var trans map[string]uint64 = make(map[string]uint64)
 var m sync.Mutex
@@ -29,37 +29,39 @@ func Transferred(value uint64, sourcePort, destinationAddress string, f transFun
 	for {
 		clientConn, err := listener.Accept()
 		if err != nil {
-			log.Printf("Error accepting connection: %v", err)
-			continue
+			// log.Printf("Error accepting connection: %v", err)
+			clientConn = nil
+			return
 		}
-		go handleConnection(sourcePort, clientConn, destinationAddress)
+		go handleConnection(listener, sourcePort, clientConn, destinationAddress)
 	}
 }
 
-func handleConnection(key string, clientConn net.Conn, destinationAddress string) {
+func handleConnection(listener net.Listener, key string, clientConn net.Conn, destinationAddress string) {
 	defer clientConn.Close()
 
 	destConn, err := net.Dial("tcp", destinationAddress)
 	if err != nil {
-		log.Printf("Error connecting to destination: %v", err)
+		// log.Printf("Error connecting to destination: %v", err)
 		return
 	}
 	defer destConn.Close()
 
-	go copyAndCount(key, destConn, clientConn)
-	copyAndCount(key, clientConn, destConn)
+	go copyAndCount(listener, key, destConn, clientConn)
+	copyAndCount(listener, key, clientConn, destConn)
 }
 
-func copyAndCount(key string, dst io.Writer, src io.Reader) {
-	countedReader := &countingReader{Reader: src, key: key}
+func copyAndCount(listener net.Listener, key string, dst io.Writer, src io.Reader) {
+	countedReader := &countingReader{Reader: src, key: key, listener: listener}
 	if _, err := io.Copy(dst, countedReader); err != nil {
-		log.Printf("Error during copy: %v", err)
+		// log.Printf("Error during copy: %v", err)
 	}
 }
 
 type countingReader struct {
 	io.Reader
-	key string
+	key      string
+	listener net.Listener
 }
 
 func (r *countingReader) Read(p []byte) (int, error) {
@@ -68,7 +70,15 @@ func (r *countingReader) Read(p []byte) (int, error) {
 		m.Lock()
 		defer m.Unlock()
 		trans[r.key] += uint64(n)
-		transfunc(trans[r.key])
+
+		ret := transfunc(trans[r.key], n)
+		if ret == 0 { //关闭
+			r.listener.Close()
+			r.listener = nil
+			trans[r.key] = 0
+		} else if ret == 1 { //重新统计
+			trans[r.key] = 0
+		}
 	}
 	return n, err
 }

@@ -1,84 +1,124 @@
 <template>
-  <a-layout>
-    <a-layout-header class="header">
-      <div class="logo" />
-      <a-menu
-        v-model:selectedKeys="selectedKeys1"
-        theme="dark"
-        mode="horizontal"
-        :style="{ lineHeight: '64px' }"
-      >
-        <a-menu-item key="1">nav 1</a-menu-item>
-        <a-menu-item key="2">nav 2</a-menu-item>
-        <a-menu-item key="3">nav 3</a-menu-item>
-      </a-menu>
-    </a-layout-header>
+  <FrameView>
     <a-layout>
-      <a-layout-sider width="200" style="background: #fff">
-        <a-menu
-          v-model:selectedKeys="selectedKeys2"
-          v-model:openKeys="openKeys"
-          mode="inline"
-          :style="{ height: '100%', borderRight: 0 }"
-        >
-          <a-sub-menu key="sub1">
-            <template #title>
-              <span>
-                <user-outlined />
-                subnav 1
-              </span>
-            </template>
-            <a-menu-item key="1">option1</a-menu-item>
-            <a-menu-item key="2">option2</a-menu-item>
-            <a-menu-item key="3">option3</a-menu-item>
-            <a-menu-item key="4">option4</a-menu-item>
-          </a-sub-menu>
-          <a-sub-menu key="sub2">
-            <template #title>
-              <span>
-                <laptop-outlined />
-                subnav 2
-              </span>
-            </template>
-            <a-menu-item key="5">option5</a-menu-item>
-            <a-menu-item key="6">option6</a-menu-item>
-            <a-menu-item key="7">option7</a-menu-item>
-            <a-menu-item key="8">option8</a-menu-item>
-          </a-sub-menu>
-          <a-sub-menu key="sub3">
-            <template #title>
-              <span>
-                <notification-outlined />
-                subnav 3
-              </span>
-            </template>
-            <a-menu-item key="9">option9</a-menu-item>
-            <a-menu-item key="10">option10</a-menu-item>
-            <a-menu-item key="11">option11</a-menu-item>
-            <a-menu-item key="12">option12</a-menu-item>
-          </a-sub-menu>
-        </a-menu>
-      </a-layout-sider>
       <a-layout style="padding: 0 24px 24px">
-        <a-breadcrumb style="margin: 16px 0">
-          <a-breadcrumb-item>Home</a-breadcrumb-item>
-          <a-breadcrumb-item>List</a-breadcrumb-item>
-          <a-breadcrumb-item>App</a-breadcrumb-item>
-        </a-breadcrumb>
-        <a-layout-content
-          :style="{ background: '#fff', padding: '24px', margin: 0, minHeight: '280px' }"
-        >
-          Content
+        <a-modal v-model:open="open" :title="`${formState.id==0?'添加':'编辑'}`" @ok="handleOk">
+          <a-form :model="formState" :label-col="labelCol" :wrapper-col="wrapperCol">
+            <a-form-item label="port">
+              <a-input v-model:value="formState.port" />
+            </a-form-item>
+            <a-form-item label="destination">
+              <a-input v-model:value="formState.destination" />
+            </a-form-item>
+          </a-form>
+        </a-modal>
+        
+        <a-layout-content :style="{ background: '#fff', padding: '24px', margin: 0, minHeight: '280px' }">
+          <a-button class="editable-add-btn" style="margin-bottom: 8px" @click="showModal">Add</a-button>
+          <a-table bordered :data-source="dataSource" :columns="columns">
+            <template #bodyCell="{ column, text, record }">
+              <template v-if="column.dataIndex === 'name'"> {{ text || ' ' }}
+                <!-- <div class="editable-cell">
+                  <div v-if="editableData[record.key]" class="editable-cell-input-wrapper">
+                    <a-input v-model:value="editableData[record.key].name" @pressEnter="save(record.key)" />
+                    <check-outlined class="editable-cell-icon-check" @click="save(record.key)" />
+                  </div>
+                  <div v-else class="editable-cell-text-wrapper">
+                    {{ text || ' ' }}
+                    <edit-outlined class="editable-cell-icon" @click="edit(record.key)" />
+                  </div>
+                </div> -->
+              </template>
+              <template v-else-if="column.dataIndex === 'operation'">
+                <a-popconfirm v-if="dataSource.length" title="Sure to delete?" @confirm="onDelete(record.key)">
+                  <a>Edit</a> | 
+                </a-popconfirm>
+                <a-popconfirm v-if="dataSource.length" title="Sure to delete?" @confirm="onDelete(record.key)">
+                  <a>Delete</a>
+                </a-popconfirm>
+              </template>
+            </template>
+          </a-table>
         </a-layout-content>
       </a-layout>
     </a-layout>
-  </a-layout>
+  </FrameView>
 </template>
 <script setup>
-import { ref } from 'vue';
-const selectedKeys1 = ref(['2']);
-const selectedKeys2 = ref(['1']);
-const openKeys = ref(['sub1']);
+import FrameView from './components/FrameView.vue';
+import { reactive, ref, toRaw } from 'vue';
+import { cloneDeep } from 'lodash-es';
+
+const formState = reactive({
+  id:0,
+  port:"",
+  destination:""
+});
+
+const columns = [
+  {
+    title: 'name',
+    dataIndex: 'name',
+    width: '30%',
+  },
+  {
+    title: 'age',
+    dataIndex: 'age',
+  },
+  {
+    title: 'address',
+    dataIndex: 'address',
+  },
+  {
+    title: 'operation',
+    dataIndex: 'operation',
+  },
+];
+const dataSource = ref([
+  {
+    key: '0',
+    name: 'Edward King 0',
+    age: 32,
+    address: 'London, Park Lane no. 0',
+  },
+  {
+    key: '1',
+    name: 'Edward King 1',
+    age: 32,
+    address: 'London, Park Lane no. 1',
+  },
+]);
+//const count = computed(() => dataSource.value.length + 1);
+const editableData = reactive({});
+const edit = key => {
+  editableData[key] = cloneDeep(dataSource.value.filter(item => key === item.key)[0]);
+};
+const save = key => {
+  Object.assign(dataSource.value.filter(item => key === item.key)[0], editableData[key]);
+  delete editableData[key];
+};
+const onDelete = key => {
+  dataSource.value = dataSource.value.filter(item => item.key !== key);
+};
+// const handleAdd = () => {
+//   const newData = {
+//     key: `${count.value}`,
+//     name: `Edward King ${count.value}`,
+//     age: 32,
+//     address: `London, Park Lane no. ${count.value}`,
+//   };
+//   dataSource.value.push(newData);
+// };
+const open = ref(false);
+const showModal = () => {
+  open.value = true;
+};
+const handleOk = e => {
+  console.log(toRaw(formState))
+  // console.log(e);
+  // open.value = false;
+};
+
 </script>
 <style scoped>
 #components-layout-demo-top-side-2 .logo {
@@ -96,5 +136,48 @@ const openKeys = ref(['sub1']);
 
 .site-layout-background {
   background: #fff;
+}
+
+.editable-cell {
+  position: relative;
+
+  .editable-cell-input-wrapper,
+  .editable-cell-text-wrapper {
+    padding-right: 24px;
+  }
+
+  .editable-cell-text-wrapper {
+    padding: 5px 24px 5px 5px;
+  }
+
+  .editable-cell-icon,
+  .editable-cell-icon-check {
+    position: absolute;
+    right: 0;
+    width: 20px;
+    cursor: pointer;
+  }
+
+  .editable-cell-icon {
+    margin-top: 4px;
+    display: none;
+  }
+
+  .editable-cell-icon-check {
+    line-height: 28px;
+  }
+
+  .editable-cell-icon:hover,
+  .editable-cell-icon-check:hover {
+    color: #108ee9;
+  }
+
+  .editable-add-btn {
+    margin-bottom: 8px;
+  }
+}
+
+.editable-cell:hover .editable-cell-icon {
+  display: inline-block;
 }
 </style>
