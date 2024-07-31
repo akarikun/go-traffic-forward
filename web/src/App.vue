@@ -2,36 +2,27 @@
   <FrameView>
     <a-layout>
       <a-layout style="padding: 0 24px 24px">
-        <a-modal v-model:open="open" :title="`${formState.id==0?'添加':'编辑'}`" @ok="handleOk">
-          <a-form :model="formState" :label-col="labelCol" :wrapper-col="wrapperCol">
-            <a-form-item label="port">
+        <a-modal v-model:open="open" :title="`${formState.id == 0 ? '添加' : '编辑'}`" @ok="handleOk" okText="确认"
+          cancelText="取消">
+          <a-form :model="formState" name="basic" :label-col="{ span: 5 }" :wrapper-col="{ span: 16 }"
+            autocomplete="off">
+            <a-form-item label="端口" name="port" :rules="[{ required: true, message: '端口' }]">
               <a-input v-model:value="formState.port" />
             </a-form-item>
-            <a-form-item label="destination">
+            <a-form-item label="转发" name="destination" :rules="[{ required: true, message: '转发' }]">
               <a-input v-model:value="formState.destination" />
             </a-form-item>
           </a-form>
         </a-modal>
-        
+
         <a-layout-content :style="{ background: '#fff', padding: '24px', margin: 0, minHeight: '280px' }">
           <a-button class="editable-add-btn" style="margin-bottom: 8px" @click="showModal">Add</a-button>
           <a-table bordered :data-source="dataSource" :columns="columns">
             <template #bodyCell="{ column, text, record }">
-              <template v-if="column.dataIndex === 'name'"> {{ text || ' ' }}
-                <!-- <div class="editable-cell">
-                  <div v-if="editableData[record.key]" class="editable-cell-input-wrapper">
-                    <a-input v-model:value="editableData[record.key].name" @pressEnter="save(record.key)" />
-                    <check-outlined class="editable-cell-icon-check" @click="save(record.key)" />
-                  </div>
-                  <div v-else class="editable-cell-text-wrapper">
-                    {{ text || ' ' }}
-                    <edit-outlined class="editable-cell-icon" @click="edit(record.key)" />
-                  </div>
-                </div> -->
-              </template>
-              <template v-else-if="column.dataIndex === 'operation'">
+              {{ text }}
+              <template v-if="column.dataIndex === 'operation'">
                 <a-popconfirm v-if="dataSource.length" title="Sure to delete?" @confirm="onDelete(record.key)">
-                  <a>Edit</a> | 
+                  <a>Edit</a> |
                 </a-popconfirm>
                 <a-popconfirm v-if="dataSource.length" title="Sure to delete?" @confirm="onDelete(record.key)">
                   <a>Delete</a>
@@ -50,43 +41,43 @@ import { reactive, ref, toRaw } from 'vue';
 import { cloneDeep } from 'lodash-es';
 
 const formState = reactive({
-  id:0,
-  port:"",
-  destination:""
+  id: 0,
+  port: "",
+  destination: ""
 });
 
 const columns = [
   {
-    title: 'name',
-    dataIndex: 'name',
-    width: '30%',
+    title: '编号',
+    dataIndex: 'id'
   },
   {
-    title: 'age',
-    dataIndex: 'age',
+    title: '用户',
+    dataIndex: 'user'
   },
   {
-    title: 'address',
-    dataIndex: 'address',
+    title: '端口',
+    dataIndex: 'port',
   },
   {
-    title: 'operation',
+    title: '转发',
+    dataIndex: 'destination',
+  },
+  {
+    title: '使用量',
+    dataIndex: 'use_total',
+  },
+  {
+    title: '时间',
+    dataIndex: 'add_date',
+  },
+  {
+    title: '操作',
     dataIndex: 'operation',
   },
 ];
 const dataSource = ref([
-  {
-    key: '0',
-    name: 'Edward King 0',
-    age: 32,
-    address: 'London, Park Lane no. 0',
-  },
-  {
-    key: '1',
-    name: 'Edward King 1',
-    age: 32,
-    address: 'London, Park Lane no. 1',
-  },
+  { id: 1, user:'admin', port: "8088", port_status:"1", destination: "localhost:59992", use_total: "100MB", add_date: '2022-07-13' }
 ]);
 //const count = computed(() => dataSource.value.length + 1);
 const editableData = reactive({});
@@ -114,7 +105,8 @@ const showModal = () => {
   open.value = true;
 };
 const handleOk = e => {
-  console.log(toRaw(formState))
+  const data = toRaw(formState)
+  console.log(data)
   // console.log(e);
   // open.value = false;
 };

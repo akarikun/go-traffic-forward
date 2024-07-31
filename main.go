@@ -22,9 +22,7 @@ var (
 )
 
 func main() {
-	// go src.RunTransferred()
-
-	//gin.SetMode(gin.ReleaseMode)
+	// go src.RunTransferred(0, "127.0.0.1:3000", "127.0.0.1:10443")
 	r := gin.New()
 
 	templ := template.Must(template.New("").ParseFS(templatesEmbed, "www/*.html"))

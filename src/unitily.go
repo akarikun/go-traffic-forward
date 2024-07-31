@@ -28,6 +28,15 @@ func InitDB() (*gorm.DB, string) {
 	// 初始化数据库连接
 	db, err := gorm.Open(sqlite.Open(cfg.ConnectionText), &gorm.Config{
 		DisableForeignKeyConstraintWhenMigrating: true,
+		// Logger: logger.New(
+		// 	log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
+		// 	logger.Config{
+		// 		SlowThreshold:             time.Second, // 慢 SQL 阈值
+		// 		LogLevel:                  logger.Warn, // 日志级别
+		// 		IgnoreRecordNotFoundError: true,        // 忽略 record not found 错误
+		// 		Colorful:                  false,       // 禁用彩色打印
+		// 	},
+		// ),
 	})
 	if err != nil {
 		panic("failed to connect database")
@@ -110,9 +119,9 @@ func RunTransferred(value uint64, sourcePort string, destinationAddress string) 
 	var m sync.Mutex
 	var use uint64 = 1 //值为0时会重置使用量
 	go Transferred(value, sourcePort, destinationAddress, func(_use uint64, _cur int) uint {
-		log.Printf("30003: %d, %s", _use, FormatUse(_use))
+		//log.Printf("30003: %d, %s", _use, FormatUse(_use))
 		if use == 0 {
-			log.Printf("reset use %d,%s", _use, FormatUse(_use))
+			// log.Printf("reset use %d,%s", _use, FormatUse(_use))
 			use = 1
 			return 1
 		} else {
@@ -123,11 +132,12 @@ func RunTransferred(value uint64, sourcePort string, destinationAddress string) 
 	log.Printf("任务执行时间：%s", time.Now())
 	c := cron.New()
 	c.AddFunc("@every 1m", func() {
-		log.Printf("任务执行时间：%s,%d,%s", time.Now(), use, FormatUse(use))
 		m.Lock()
 		defer m.Unlock()
-		//需要统计流量
-
+		if use > 0 {
+			//log.Printf("任务执行时间：%s,%d,%s", time.Now(), use, FormatUse(use))
+			//需要统计流量
+		}
 		use = 0 //重置状态
 	})
 	c.Start()

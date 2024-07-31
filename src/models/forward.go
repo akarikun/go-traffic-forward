@@ -8,6 +8,7 @@ type Forward struct {
 	ID          uint      `json:"id" gorm:"primarykey;autoIncrement"`
 	UserID      uint      `json:"user_id"`
 	Port        uint16    `json:"port" gorm:"unique"`
+	BindPort    string    `json:"bind_port"`
 	Destination string    `json:"destination"`
 	Ratio       float32   `json:"ratio"`
 	AddDate     time.Time `json:"add_date"`
