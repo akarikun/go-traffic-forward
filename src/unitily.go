@@ -10,7 +10,6 @@ import (
 
 	"os"
 
-	"github.com/google/uuid"
 	"github.com/robfig/cron"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -44,26 +43,9 @@ func InitDB() (*gorm.DB, string) {
 
 	db.AutoMigrate(
 		&models.User{},
+		&models.Forward{},
 	)
-
-	var u []models.User
-	db.Find(&u)
-	if len(u) == 0 {
-		u4 := uuid.New()
-		user := models.User{
-			UUID:          u4.String(),
-			Username:      "admin",
-			Nickname:      "admin",
-			Password:      "123456",
-			RegisterDate:  time.Now(),
-			LastLoginDate: time.Now(),
-			Token:         u4.String(),
-			Affiliates:    "",
-			Type:          1,
-			IsDel:         0,
-		}
-		db.Create(&user)
-	}
+	models.UserCreateAdmin(db)
 
 	return db, cfg.Addr
 }

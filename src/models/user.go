@@ -4,7 +4,6 @@ import (
 	"TRAFforward/src/common"
 	"time"
 
-	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
 
@@ -31,13 +30,40 @@ type User_Resp struct {
 	Type         int
 }
 
+type User_Req struct {
+	*Req
+}
+
+func newAff() string {
+	return common.Random(12)
+}
+
+func UserCreateAdmin(db *gorm.DB) {
+	var m []User
+	db.Find(&m)
+	if len(m) == 0 {
+		user := User{
+			UUID:          common.UUID(),
+			Username:      "admin",
+			Nickname:      "admin",
+			Password:      common.MD5("123456"),
+			RegisterDate:  time.Now(),
+			LastLoginDate: time.Now(),
+			Token:         common.UUID(),
+			Affiliates:    newAff(),
+			Type:          1,
+			IsDel:         0,
+		}
+		db.Create(&user)
+	}
+}
+
 func UserLogin(db *gorm.DB, username, password string) User {
 	var u User
-	db.Where(User{Username: username, Password: password}).First(&u)
+	db.Where(User{Username: username, Password: common.MD5(password)}).First(&u)
 	if u.ID > 0 {
-		u4 := uuid.New()
-		u.Token = u4.String()
-		u.TokenDate = time.Now()
+		u.Token = common.UUID()
+		u.TokenDate = time.Now().AddDate(0, 0, 30) //有效期30天
 		db.Save(u)
 	}
 	return u
@@ -46,7 +72,7 @@ func UserLogin(db *gorm.DB, username, password string) User {
 func UserByToken(db *gorm.DB, token string) User {
 	var u User
 	db.Where(User{Token: token}).First(&u)
-	if u.ID > 0 && u.TokenDate.AddDate(0, 0, 30).After(time.Now()) {
+	if u.ID > 0 && u.TokenDate.After(time.Now()) {
 		return u
 	}
 	return User{}
@@ -54,20 +80,19 @@ func UserByToken(db *gorm.DB, token string) User {
 
 func UserCreateOrUpdate(db *gorm.DB, req User) {
 	if req.ID == 0 {
-		u4 := uuid.New()
-		req.UUID = u4.String()
+		req.UUID = common.UUID()
 		req.RegisterDate = time.Now()
 		req.IsDel = 0
 		req.Type = 1
-		req.Affiliates = "1"
-		req.Token = u4.String()
+		req.Affiliates = newAff()
+		req.Token = common.UUID()
 		db.Create(&req)
 	} else {
-		var u User
-		db.First(&u, 1)
+		var m User
+		db.First(&m, 1)
 		if common.IsNullOrEmpty(req.Password) {
-			u.Password = req.Password
+			m.Password = common.MD5(req.Password)
 		}
-		db.Save(u)
+		db.Save(m)
 	}
 }

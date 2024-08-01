@@ -5,3 +5,7 @@ type Resp struct {
 	Message string      `json:"message"`
 	Data    interface{} `json:"data"`
 }
+type Req struct {
+	PageIndex int `json:"page_index"`
+	PageSize  int `json:"page_size"`
+}
