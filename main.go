@@ -2,6 +2,8 @@ package main
 
 import (
 	"TRAFforward/src"
+	"TRAFforward/src/database"
+	"TRAFforward/src/models"
 	"embed"
 	"html/template"
 	"io/fs"
@@ -22,9 +24,7 @@ var (
 )
 
 func main() {
-	// go src.RunTransferred(0, "127.0.0.1:3000", "127.0.0.1:10443")
-	r := gin.New()
-
+	r := gin.Default()
 	templ := template.Must(template.New("").ParseFS(templatesEmbed, "www/*.html"))
 	r.SetHTMLTemplate(templ)
 	jsFS, _ := fs.Sub(JSEmbed, "www/js")
@@ -32,7 +32,16 @@ func main() {
 	cssFS, _ := fs.Sub(CSSEmbed, "www/css")
 	r.StaticFS("/css", http.FS(cssFS))
 
-	db, addr := src.InitDB()
-	src.Api(r, db)
-	r.Run(addr)
+	r.GET("/", func(c *gin.Context) {
+		c.HTML(http.StatusOK, "index.html", gin.H{})
+	})
+	cfg := database.InitConfig()
+	db := database.InitDB(cfg)
+	db.AutoMigrate(
+		&models.User{},
+		&models.Forward{},
+	)
+	models.UserCreateAdmin(db)
+	src.RouterRegister(r)
+	r.Run(cfg.Addr)
 }

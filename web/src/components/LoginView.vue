@@ -21,23 +21,17 @@
 import { reactive } from 'vue';
 
 import { useRouter } from 'vue-router'
-import { notification } from 'ant-design-vue';
+
 import * as $ from './../utils/common.js'
 
 const router = useRouter()
 const formState = reactive({
-  username: 'admin',
-  password: '123456',
-  remember: true,
+  username: '',
+  password: '',
 });
 const onFinish = async values => {
-  const { status, data, message } = await $.Api($.Login_URL, { username: values.username, password: values.password })
+  const { status, data, message } = await $.POST($.URL.Login, { username: values.username, password: values.password })
   if (status == 0) {
-    notification.open({
-      message: '提示',
-      description: message,
-      duration: 3,
-    });
     return;
   }
   router.push({ name: 'main' });

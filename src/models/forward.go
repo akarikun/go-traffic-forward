@@ -1,8 +1,13 @@
 package models
 
 import (
+	"errors"
+	"fmt"
+	"regexp"
+	"strconv"
 	"time"
 
+	"github.com/jinzhu/copier"
 	"gorm.io/gorm"
 )
 
@@ -18,35 +23,59 @@ type Forward struct {
 	IsDel       int       `json:"is_del"`
 }
 
+type Forward_Query struct {
+	Query
+}
 type Forward_Req struct {
-	Req
+	ID          uint   `json:"id" gorm:"primarykey;autoIncrement"`
+	UserID      uint   `json:"user_id"`
+	BindPort    string `json:"bind_port"`
+	Destination string `json:"destination"`
 }
 
-func portChecked(db *gorm.DB, port uint16, id uint) bool {
+func getPort(db *gorm.DB, bind_port string) (uint16, error) {
+	re := regexp.MustCompile(`\d+$`)
+	match := re.FindString(bind_port)
+	_port, err := strconv.Atoi(match)
+	if err != nil {
+		return 0, errors.New("端口异常")
+	}
+	port := uint16(_port)
 	var count int64
-	db.Where(Forward{Port: port}).Not(Forward{ID: id}).Count(&count)
-	return count > 0
+	db.Where(&Forward{Port: port, IsDel: 0}).Count(&count)
+	if count > 0 {
+		return 0, errors.New("端口已占用")
+	}
+	return port, nil
 }
-func ForwardGetList(db *gorm.DB, req Forward_Req) []Forward {
+func ForwardGetList(db *gorm.DB, query Forward_Query) []Forward {
 	var m []Forward
-	db.Limit(req.PageSize).Offset((req.PageIndex - 1) * req.PageSize).Find(&m)
+	db.Where("is_del", 0).Limit(query.PageSize).Offset((query.PageIndex - 1) * query.PageSize).Order("id desc").Find(&m)
 	return m
 }
-func ForwardCreateOrUpdate(db *gorm.DB, req Forward) {
-	if portChecked(db, req.Port, req.ID) {
-		if req.ID == 0 {
-			req.Ratio = 1
-			req.AddDate = time.Now()
-			req.UseTotal = 0
-			req.IsDel = 0
-			db.Create(&req)
-		} else {
-			var m Forward
-			db.First(&m, 1)
-			m.BindPort = req.BindPort
-			m.Destination = req.Destination
-			m.Port = req.Port
-			db.Save(m)
-		}
+func ForwardCreateOrUpdate(db *gorm.DB, req Forward_Req) error {
+	port, err := getPort(db, req.BindPort)
+	if err != nil {
+		return err
 	}
+	if req.ID == 0 {
+		m := Forward{
+			Port:     port,
+			Ratio:    1,
+			AddDate:  time.Now(),
+			UseTotal: 0,
+			IsDel:    0,
+		}
+		copier.Copy(&m, &req)
+		result := db.Create(&m)
+		fmt.Println(result)
+	} else {
+		var m Forward
+		copier.Copy(&m, &req)
+		db.Updates(m)
+	}
+	return nil
+}
+func ForwardDelete(db *gorm.DB, id uint) {
+	db.Where(Forward{ID: id}).Updates(Forward{IsDel: 1})
 }

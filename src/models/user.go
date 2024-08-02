@@ -9,7 +9,7 @@ import (
 
 type User struct {
 	ID            uint      `json:"id" gorm:"primarykey;autoIncrement"`
-	UUID          string    `json:"uuid" gorm:"unique"`
+	UUID          string    `json:"uuid" gorm:"unique;not null"`
 	Username      string    `json:"username" gorm:"unique"`
 	Password      string    `json:"password"`
 	Nickname      string    `json:"nickname"`
@@ -30,8 +30,8 @@ type User_Resp struct {
 	Type         int
 }
 
-type User_Req struct {
-	*Req
+type User_Query struct {
+	*Query
 }
 
 func newAff() string {

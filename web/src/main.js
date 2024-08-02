@@ -19,9 +19,8 @@ const router = createRouter({
     base: process.env.VUE_APP_BASE_URL,
 })
 router.beforeEach((to, from, next) => {
-    // 假设我们要检查名为'user'的cookie
     const hasCookie = document.cookie.split(';').some(cookie => cookie.trim().startsWith('token='));
-    console.log(hasCookie,to.path);
+    // console.log(hasCookie,to.path);
     if (to.path !== '/login' && !hasCookie) {
         next('/login');
     } else {
