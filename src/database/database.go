@@ -34,10 +34,10 @@ func InitDB(cfg Config) *gorm.DB {
 		Logger: logger.New(
 			log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
 			logger.Config{
-				SlowThreshold:             time.Second, // 慢 SQL 阈值
-				LogLevel:                  logger.Info, // 日志级别
-				IgnoreRecordNotFoundError: true,        // 忽略 record not found 错误
-				Colorful:                  false,       // 禁用彩色打印
+				SlowThreshold:             time.Second,  // 慢 SQL 阈值
+				LogLevel:                  logger.Error, // 日志级别
+				IgnoreRecordNotFoundError: true,         // 忽略 record not found 错误
+				Colorful:                  false,        // 禁用彩色打印
 			},
 		),
 	})

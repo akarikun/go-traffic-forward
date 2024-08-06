@@ -8,10 +8,10 @@ import (
 	"sync"
 )
 
-type transFunc func(uint64, int) uint
+type transInitFunc func()
+type transFunc func(int) uint
 type transferredFunc func(*TransModel)
 
-var transUseDataDic map[uint16]uint64 = make(map[uint16]uint64)
 var translist = make(map[uint16]*TransModel)
 var m sync.Mutex
 
@@ -20,6 +20,7 @@ type TransModel struct {
 	port      uint16
 	listener  net.Listener
 	transfunc transFunc
+	initFunc  transInitFunc
 }
 
 func (model *TransModel) Close() {
@@ -51,13 +52,13 @@ func tcp_transferred(value uint64, sourcePort, destinationAddress string, action
 		return err
 	}
 	defer listener.Close()
-	transUseDataDic[port] = value
 	log.Printf("Listening on port %s...\n", sourcePort)
 	translist[port] = new(TransModel)
 	translist[port].use = value
 	translist[port].port = port
 	translist[port].listener = listener
 	action(translist[port])
+	translist[port].initFunc()
 	for {
 		clientConn, err := listener.Accept()
 		if err != nil {
@@ -100,15 +101,14 @@ func (r *countingReader) Read(p []byte) (int, error) {
 	if n > 0 {
 		m.Lock()
 		defer m.Unlock()
-		// trans[r.key] += uint64(n)
 		r.model.use += uint64(n)
 
-		ret := r.model.transfunc(transUseDataDic[r.model.port], n)
+		ret := r.model.transfunc(n)
 		if ret == 0 { //关闭
 			r.model.listener.Close()
 			r.model.listener = nil
 		} else if ret == 1 { //重新统计
-			transUseDataDic[r.model.port] = 0
+			r.model.use = 0
 		}
 	}
 	return n, err

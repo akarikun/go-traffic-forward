@@ -59,7 +59,7 @@ func PostForwardHandle(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: err.Error()})
 			return
 		}
-		go common.RunTransferred(model.UseTotal, 10, body.BindPort, body.Destination, func(use_total uint64) {
+		go common.RunTransferred(0, 10, body.BindPort, body.Destination, func(use_total uint64) {
 			models.ForwardUpdateUse(db, model.ID, use_total)
 		})
 	}

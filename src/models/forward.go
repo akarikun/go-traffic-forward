@@ -92,8 +92,9 @@ func ForwardDelete(db *gorm.DB, id uint) Forward {
 	return m
 }
 func ForwardUpdateUse(db *gorm.DB, id uint, use_total uint64) {
-	// var m Forward
-	// db.Where(Forward{ID: id}).Find(&m)
-	// //m.UseTotal += use_total
-	db.Where(Forward{ID: id}).Updates(Forward{UseTotal: use_total})
+	var m Forward
+	db.Where(Forward{ID: id}).Find(&m)
+	m.UseTotal += use_total
+	db.Save(m)
+	// db.Where(Forward{ID: id}).Updates(Forward{UseTotal: use_total})
 }

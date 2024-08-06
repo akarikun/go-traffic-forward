@@ -4,6 +4,7 @@ import (
 	"crypto/md5"
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"regexp"
@@ -120,13 +121,29 @@ func RunTransferred(value uint64, minute int, sourcePort string, destinationAddr
 	var m sync.Mutex
 	var use uint64 = 1 //值为0时会重置使用量
 	if err := tcp_transferred(value, sourcePort, destinationAddress, func(tm *TransModel) {
-		tm.transfunc = func(_use uint64, _cur int) uint {
+		tm.initFunc = func() {
+			log.Printf("%s任务执行时间：%s", sourcePort, time.Now())
+			c := cron.New()
+			c.AddFunc(fmt.Sprintf("@every %dm", minute), func() {
+				m.Lock()
+				defer m.Unlock()
+				if use > 0 {
+					log.Printf("任务执行时间：%s,%d,%s", time.Now(), use, FormatUse(use))
+					//需要统计流量
+					action(use)
+				}
+				use = 0 //重置状态
+			})
+			c.Start()
+		}
+		tm.transfunc = func(_cur int) uint {
+			// log.Printf("reset use %d,%d,%s", use, tm.use, FormatUse(tm.use))
 			if use == 0 {
-				// log.Printf("reset use %d,%s", _use, FormatUse(_use))
+				// log.Printf("reset use %d,%s", tm.use, FormatUse(tm.use))
 				use = 1
 				return 1
 			} else {
-				use = _use
+				use = tm.use
 			}
 			return 100 //0停止 1重新统计
 		}
@@ -134,17 +151,4 @@ func RunTransferred(value uint64, minute int, sourcePort string, destinationAddr
 		fmt.Printf("tcp_transferred error:%s,%s\r\n", sourcePort, destinationAddress)
 		return
 	}
-	// log.Printf("任务执行时间：%s", time.Now())
-	c := cron.New()
-	c.AddFunc(fmt.Sprintf("@every %dm", minute), func() {
-		m.Lock()
-		defer m.Unlock()
-		if use > 0 {
-			//log.Printf("任务执行时间：%s,%d,%s", time.Now(), use, FormatUse(use))
-			//需要统计流量
-			action(use)
-			use = 0 //重置状态
-		}
-	})
-	c.Start()
 }
