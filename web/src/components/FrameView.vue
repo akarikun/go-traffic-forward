@@ -15,7 +15,7 @@
           <a-sub-menu key="sub1">
             <template #title>
               <span>
-                <user-outlined />
+                <!-- <user-outlined /> -->
                 subnav 1
               </span>
             </template>
@@ -27,7 +27,7 @@
           <a-sub-menu key="sub2">
             <template #title>
               <span>
-                <laptop-outlined />
+                <!-- <laptop-outlined /> -->
                 subnav 2
               </span>
             </template>

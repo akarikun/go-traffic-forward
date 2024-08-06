@@ -62,9 +62,13 @@ func UserLogin(db *gorm.DB, username, password string) User {
 	var u User
 	db.Where(User{Username: username, Password: common.MD5(password)}).First(&u)
 	if u.ID > 0 {
-		u.Token = common.UUID()
-		u.TokenDate = time.Now().AddDate(0, 0, 30) //有效期30天
-		db.Save(u)
+		token := common.UUID()
+		tokenDate := time.Now().AddDate(0, 0, 30) //有效期30天
+		if u.TokenDate.Before(time.Now()) {       //过期
+			u.Token = token
+			u.TokenDate = tokenDate
+			db.Save(u)
+		}
 	}
 	return u
 }

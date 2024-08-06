@@ -2,9 +2,11 @@ package main
 
 import (
 	"TRAFforward/src"
+	"TRAFforward/src/common"
 	"TRAFforward/src/database"
 	"TRAFforward/src/models"
 	"embed"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
@@ -22,6 +24,26 @@ var (
 	//go:embed www/*
 	templatesEmbed embed.FS
 )
+
+func InitForward() {
+	db := database.GetDB()
+	list := models.ForwardGetPortList(db)
+	for _, v := range list {
+		ok, err := common.ValidatePort(v.BindPort)
+		if err != nil {
+			fmt.Printf("InitForward error: %s", err.Error())
+			return
+		}
+		if !ok {
+			fmt.Printf("InitForward error: 端口[%s]已被占用", v.BindPort)
+			// continue
+			return
+		}
+		go common.RunTransferred(0, 10, v.BindPort, v.Destination, func(use_total uint64) {
+			models.ForwardUpdateUse(db, v.ID, use_total)
+		})
+	}
+}
 
 func main() {
 	r := gin.Default()
@@ -43,5 +65,6 @@ func main() {
 	)
 	models.UserCreateAdmin(db)
 	src.RouterRegister(r)
+	InitForward()
 	r.Run(cfg.Addr)
 }

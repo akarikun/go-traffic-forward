@@ -19,13 +19,13 @@ func checkCookie(db *gorm.DB) gin.HandlerFunc {
 		}
 		token, err := ctx.Cookie("token")
 		if err != nil {
-			ctx.JSON(http.StatusNotFound, models.Output{})
+			ctx.JSON(http.StatusOK, models.Output{Status: -1, Message: err.Error()})
 			ctx.Abort()
 			return
 		}
 		u := models.UserByToken(db, token)
 		if u.ID == 0 {
-			ctx.JSON(http.StatusBadRequest, models.Output{Message: "用户信息异常"})
+			ctx.JSON(http.StatusOK, models.Output{Status: -1, Message: "用户信息异常"})
 			ctx.Abort()
 			return
 		}

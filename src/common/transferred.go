@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -8,36 +9,67 @@ import (
 )
 
 type transFunc func(uint64, int) uint
+type transferredFunc func(*TransModel)
 
-var trans map[string]uint64 = make(map[string]uint64)
+var transUseDataDic map[uint16]uint64 = make(map[uint16]uint64)
+var translist = make(map[uint16]*TransModel)
 var m sync.Mutex
-var transfunc transFunc
 
-func Transferred(value uint64, sourcePort, destinationAddress string, f transFunc) {
+type TransModel struct {
+	use       uint64
+	port      uint16
+	listener  net.Listener
+	transfunc transFunc
+}
+
+func (model *TransModel) Close() {
+	model.listener.Close()
+}
+
+func CloseTrans(port uint16) error {
+	model, ok := translist[port]
+	if !ok {
+		return fmt.Errorf("关闭异常,未找到端口:%d", port)
+	}
+	model.use = 0
+	model.listener.Close()
+	model.listener = nil
+	return nil
+}
+
+func tcp_transferred(value uint64, sourcePort, destinationAddress string, action transferredFunc) error {
 	// sourcePort := ":8085"
 	// destinationAddress := "127.0.0.1:57890"
-	trans[sourcePort] = value
-	transfunc = f
 
+	port, _, err := GetPort(sourcePort)
+	if err != nil {
+		return err
+	}
 	listener, err := net.Listen("tcp", sourcePort)
 	if err != nil {
-		log.Fatalf("Error listening on port %s: %v", sourcePort, err)
+		//log.Fatalf("Error listening on port %s: %v", sourcePort, err)
+		return err
 	}
 	defer listener.Close()
+	transUseDataDic[port] = value
 	log.Printf("Listening on port %s...\n", sourcePort)
-
+	translist[port] = new(TransModel)
+	translist[port].use = value
+	translist[port].port = port
+	translist[port].listener = listener
+	action(translist[port])
 	for {
 		clientConn, err := listener.Accept()
 		if err != nil {
 			// log.Printf("Error accepting connection: %v", err)
 			clientConn = nil
-			return
+			return err
 		}
-		go handleConnection(listener, sourcePort, clientConn, destinationAddress)
+		go handleConnection(port, clientConn, destinationAddress)
 	}
 }
 
-func handleConnection(listener net.Listener, key string, clientConn net.Conn, destinationAddress string) {
+func handleConnection(port uint16, clientConn net.Conn, destinationAddress string) {
 	defer clientConn.Close()
 
 	destConn, err := net.Dial("tcp", destinationAddress)
@@ -47,12 +79,12 @@ func handleConnection(listener net.Listener, key string, clientConn net.Conn, de
 	}
 	defer destConn.Close()
 
-	go copyAndCount(listener, key, destConn, clientConn)
-	copyAndCount(listener, key, clientConn, destConn)
+	go copyAndCount(port, destConn, clientConn)
+	copyAndCount(port, clientConn, destConn)
 }
 
-func copyAndCount(listener net.Listener, key string, dst io.Writer, src io.Reader) {
-	countedReader := &countingReader{Reader: src, key: key, listener: listener}
+func copyAndCount(port uint16, dst io.Writer, src io.Reader) {
+	countedReader := &countingReader{Reader: src, model: translist[port]}
 	if _, err := io.Copy(dst, countedReader); err != nil {
 		// log.Printf("Error during copy: %v", err)
 	}
@@ -60,8 +92,7 @@ func copyAndCount(listener net.Listener, key string, dst io.Writer, src io.Reade
 
 type countingReader struct {
 	io.Reader
-	key      string
-	listener net.Listener
+	model *TransModel
 }
 
 func (r *countingReader) Read(p []byte) (int, error) {
@@ -69,15 +100,15 @@ func (r *countingReader) Read(p []byte) (int, error) {
 	if n > 0 {
 		m.Lock()
 		defer m.Unlock()
-		trans[r.key] += uint64(n)
+		// trans[r.key] += uint64(n)
+		r.model.use += uint64(n)
 
-		ret := transfunc(trans[r.key], n)
+		ret := r.model.transfunc(transUseDataDic[r.model.port], n)
 		if ret == 0 { //关闭
-			r.listener.Close()
-			r.listener = nil
-			trans[r.key] = 0
+			r.model.listener.Close()
+			r.model.listener = nil
 		} else if ret == 1 { //重新统计
-			trans[r.key] = 0
+			transUseDataDic[r.model.port] = 0
 		}
 	}
 	return n, err

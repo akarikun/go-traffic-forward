@@ -1,10 +1,9 @@
 package models
 
 import (
+	"TRAFforward/src/common"
 	"errors"
 	"fmt"
-	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/jinzhu/copier"
@@ -14,7 +13,7 @@ import (
 type Forward struct {
 	ID          uint      `json:"id" gorm:"primarykey;autoIncrement"`
 	UserID      uint      `json:"user_id"`
-	Port        uint16    `json:"port" gorm:"unique"`
+	Port        uint16    `json:"port"`
 	BindPort    string    `json:"bind_port"`
 	Destination string    `json:"destination"`
 	Ratio       float32   `json:"ratio"`
@@ -34,15 +33,12 @@ type Forward_Req struct {
 }
 
 func getPort(db *gorm.DB, bind_port string) (uint16, error) {
-	re := regexp.MustCompile(`\d+$`)
-	match := re.FindString(bind_port)
-	_port, err := strconv.Atoi(match)
+	port, _, err := common.GetPort(bind_port)
 	if err != nil {
-		return 0, errors.New("端口异常")
+		return 0, err
 	}
-	port := uint16(_port)
 	var count int64
-	db.Where(&Forward{Port: port, IsDel: 0}).Count(&count)
+	db.Model(&Forward{}).Where("port=? and is_del=0", port).Count(&count)
 	if count > 0 {
 		return 0, errors.New("端口已占用")
 	}
@@ -50,16 +46,24 @@ func getPort(db *gorm.DB, bind_port string) (uint16, error) {
 }
 func ForwardGetList(db *gorm.DB, query Forward_Query) []Forward {
 	var m []Forward
-	db.Where("is_del", 0).Limit(query.PageSize).Offset((query.PageIndex - 1) * query.PageSize).Order("id desc").Find(&m)
+	db.Model(Forward{}).Where("is_del", 0).Limit(query.PageSize).Offset((query.PageIndex - 1) * query.PageSize).Order("id desc").Find(&m)
 	return m
 }
-func ForwardCreateOrUpdate(db *gorm.DB, req Forward_Req) error {
+
+func ForwardGetPortList(db *gorm.DB) []Forward {
+	var m []Forward
+	db.Model(Forward{}).Where("is_del", 0).Find(&m)
+	return m
+}
+
+func ForwardCreateOrUpdate(db *gorm.DB, req Forward_Req) (Forward, error) {
 	port, err := getPort(db, req.BindPort)
 	if err != nil {
-		return err
+		return Forward{}, err
 	}
 	if req.ID == 0 {
 		m := Forward{
+			BindPort: req.BindPort,
 			Port:     port,
 			Ratio:    1,
 			AddDate:  time.Now(),
@@ -67,15 +71,29 @@ func ForwardCreateOrUpdate(db *gorm.DB, req Forward_Req) error {
 			IsDel:    0,
 		}
 		copier.Copy(&m, &req)
+		if fmt.Sprintf("%d", port) == m.BindPort {
+			m.BindPort = fmt.Sprintf("127.0.0.1:%d", port)
+		}
 		result := db.Create(&m)
-		fmt.Println(result)
+		return m, result.Error
 	} else {
 		var m Forward
 		copier.Copy(&m, &req)
-		db.Updates(m)
+		if fmt.Sprintf("%d", port) == m.BindPort {
+			m.BindPort = fmt.Sprintf("127.0.0.1:%d", port)
+		}
+		result := db.Updates(m)
+		return m, result.Error
 	}
-	return nil
 }
-func ForwardDelete(db *gorm.DB, id uint) {
-	db.Where(Forward{ID: id}).Updates(Forward{IsDel: 1})
+func ForwardDelete(db *gorm.DB, id uint) Forward {
+	var m Forward
+	db.Where(Forward{ID: id}).Find(&m).Updates(Forward{IsDel: 1})
+	return m
+}
+func ForwardUpdateUse(db *gorm.DB, id uint, use_total uint64) {
+	// var m Forward
+	// db.Where(Forward{ID: id}).Find(&m)
+	// //m.UseTotal += use_total
+	db.Where(Forward{ID: id}).Updates(Forward{UseTotal: use_total})
 }

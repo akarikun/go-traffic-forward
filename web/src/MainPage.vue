@@ -45,6 +45,9 @@ import FrameView from './components/FrameView.vue';
 import * as $ from './utils/common'
 import { reactive, ref, toRaw } from 'vue';
 import { cloneDeep } from 'lodash-es';
+import { useRouter } from 'vue-router'
+const router = useRouter()
+console.log(router)
 
 const formState = ref({
   id: 0,
