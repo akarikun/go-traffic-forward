@@ -78,7 +78,7 @@ func FormatUse(use uint64) string {
 // uint16 返回匹配端口
 // string 返回"IP:端口"格式,无IP则为127.0.0.1
 func GetPort(sourcePort string) (uint16, string, error) {
-	regex := regexp.MustCompile(`^(((?:(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|(?:[a-z0-9]+\.)+[a-z0-9]+)?)?:?)(\d{5}))$`)
+	regex := regexp.MustCompile(`^(((?:(?:\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|localhost|(?:[a-z0-9]+\.)+[a-z0-9]+)?)?:?)(\d{1,5}))$`)
 	match := regex.FindStringSubmatch(sourcePort)
 	if match != nil {
 		ip := match[2]
@@ -89,11 +89,14 @@ func GetPort(sourcePort string) (uint16, string, error) {
 			return 0, "", errors.New("配置异常:" + sourcePort)
 		}
 		if p <= 50000 || p >= 60000 {
-			return 0, "", errors.New("暂只开放50000-60000之间的端口," + sourcePort)
+			return 0, "", errors.New("暂只开放50000-60000之间的端口,")
 		}
 
-		if ip == ":" {
+		if ip == "" || ip == ":" {
 			return uint16(p), fmt.Sprintf("127.0.0.1:%s", port), nil
+		}
+		if strings.IndexByte(ip, ':') >= 0 {
+			return uint16(p), fmt.Sprintf("%s%s", ip, port), nil
 		}
 		return uint16(p), fmt.Sprintf("%s:%s", ip, port), nil
 	} else {
@@ -101,17 +104,17 @@ func GetPort(sourcePort string) (uint16, string, error) {
 	}
 }
 
-func ValidatePort(cp string) (bool, error) {
-	_, _, err := GetPort(cp)
+func ValidatePort(cp string) (bool, string) {
+	_, cp, err := GetPort(cp)
 	if err != nil {
-		return false, err
+		return false, cp
 	}
 	conn, err := net.DialTimeout("tcp", cp, time.Second)
 	if err != nil {
-		return true, nil
+		return true, cp
 	} else {
 		defer conn.Close()
-		return false, nil
+		return false, cp
 	}
 }
 
@@ -130,7 +133,7 @@ func RunTransferred(value uint64, minute int, sourcePort string, destinationAddr
 				if use > 0 {
 					log.Printf("任务执行时间：%s,%d,%s", time.Now(), use, FormatUse(use))
 					//需要统计流量
-					action(use)
+					action(use / 1024 / 1024) //从MB开始统计
 				}
 				use = 0 //重置状态
 			})
@@ -145,7 +148,7 @@ func RunTransferred(value uint64, minute int, sourcePort string, destinationAddr
 			} else {
 				use = tm.use
 			}
-			return 100 //0停止 1重新统计
+			return 100 //0停止 1重新统计 其他值不处理
 		}
 	}); err != nil {
 		fmt.Printf("tcp_transferred error:%s,%s\r\n", sourcePort, destinationAddress)

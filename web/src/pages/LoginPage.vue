@@ -22,7 +22,7 @@ import { reactive } from 'vue';
 
 import { useRouter } from 'vue-router'
 
-import * as $ from './../utils/common.js'
+import * as $ from '../utils/common.js'
 
 const router = useRouter()
 const formState = reactive({

@@ -3,19 +3,11 @@ import { createWebHashHistory, createRouter } from 'vue-router'
 import Antd from 'ant-design-vue';
 import App from './App';
 import 'ant-design-vue/dist/reset.css';
-
-import LoginView from './components/LoginView.vue';
-import MainPage from './MainPage.vue'
-
-const routes = [
-    { name: '/', path: '/', component: LoginView },
-    { name: 'login', path: '/login', component: LoginView },
-    { name: 'main', path: '/main', component: MainPage },
-]
+import {routes} from './router'
 
 const router = createRouter({
     history: createWebHashHistory(),
-    routes,
+    routes: routes,
     base: process.env.VUE_APP_BASE_URL,
 })
 router.beforeEach((to, from, next) => {

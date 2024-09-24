@@ -18,14 +18,16 @@ func PostForwardDeleteHandle(ctx *gin.Context) {
 	}
 	id := body["id"]
 	db := database.GetDB()
-	m := models.ForwardDelete(db, uint(id))
-	if err := common.CloseTrans(m.Port); err != nil {
-		// ctx.JSON(http.StatusOK, models.Output{Message: err.Error()})
-		fmt.Printf("ForwardDelete:%d,%s", m.Port, err.Error())
+	if m, err := models.ForwardDelete(db, uint(id)); err != nil {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: err.Error()})
+	} else {
+		if err := common.CloseTrans(m.Port); err != nil {
+			fmt.Printf("ForwardDelete:%d,%s", m.Port, err.Error())
+			ctx.JSON(http.StatusOK, models.Output{Status: 1})
+			return
+		}
 		ctx.JSON(http.StatusOK, models.Output{Status: 1})
-		return
 	}
-	ctx.JSON(http.StatusOK, models.Output{Status: 1})
 }
 func PostForwardHandle(ctx *gin.Context) {
 	var body models.Forward_Req
@@ -34,16 +36,12 @@ func PostForwardHandle(ctx *gin.Context) {
 		return
 	}
 
-	// var bool,
-	ok, err := common.ValidatePort(body.BindPort)
-	if err != nil {
-		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: err.Error()})
-		return
-	}
+	ok, port := common.ValidatePort(body.BindPort)
 	if !ok {
-		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: fmt.Sprintf("端口[%s]已被占用", body.BindPort)})
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: fmt.Sprintf("配置异常或端口[%s]已被占用", body.BindPort)})
 		return
 	}
+	body.BindPort = port
 	db := database.GetDB()
 	model, err := models.ForwardCreateOrUpdate(db, body)
 	if err != nil {

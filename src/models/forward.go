@@ -86,10 +86,18 @@ func ForwardCreateOrUpdate(db *gorm.DB, req Forward_Req) (Forward, error) {
 		return m, result.Error
 	}
 }
-func ForwardDelete(db *gorm.DB, id uint) Forward {
+func ForwardDelete(db *gorm.DB, id uint) (Forward, error) {
 	var m Forward
-	db.Where(Forward{ID: id}).Find(&m).Updates(Forward{IsDel: 1})
-	return m
+	if err := db.First(&m, id).Error; err != nil {
+		return m, err // 返回错误
+	}
+	// m.IsDel = 1
+	// if err := db.Save(&m).Error; err != nil {
+	// 	return m, err // 返回错误
+	// }
+	// return m, nil
+	db.Delete(&Forward{}, id)
+	return m, nil
 }
 func ForwardUpdateUse(db *gorm.DB, id uint, use_total uint64) {
 	var m Forward

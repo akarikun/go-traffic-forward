@@ -28,7 +28,7 @@
                 </a-popconfirm>
               </template>
               <template v-else-if="column.dataIndex === 'use_total'">
-                {{ $.formatBytes(text) }}
+                {{ $.formatBytes(text*1024*1024) }}
               </template>
               <template v-else>
                 {{ text }}
@@ -41,13 +41,12 @@
   </FrameView>
 </template>
 <script setup>
-import FrameView from './components/FrameView.vue';
-import * as $ from './utils/common'
+import FrameView from './../components/FrameView.vue';
+import * as $ from '../utils/common'
 import { reactive, ref, toRaw } from 'vue';
 import { cloneDeep } from 'lodash-es';
 import { useRouter } from 'vue-router'
 const router = useRouter()
-console.log(router)
 
 const formState = ref({
   id: 0,
@@ -73,7 +72,7 @@ const columns = [
     dataIndex: 'destination',
   },
   {
-    title: '使用量',
+    title: '使用量(MB)',
     dataIndex: 'use_total',
   },
   {
@@ -104,6 +103,7 @@ const onDelete = async key => {
 };
 const open = ref(false);
 const showModal = () => {
+  formState.value = {}
   open.value = true;
 };
 const handleOk = async e => {
@@ -123,64 +123,3 @@ const handleEdit = (id) => {
 }
 
 </script>
-<style scoped>
-#components-layout-demo-top-side-2 .logo {
-  float: left;
-  width: 120px;
-  height: 31px;
-  margin: 16px 24px 16px 0;
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.ant-row-rtl #components-layout-demo-top-side-2 .logo {
-  float: right;
-  margin: 16px 0 16px 24px;
-}
-
-.site-layout-background {
-  background: #fff;
-}
-
-.editable-cell {
-  position: relative;
-
-  .editable-cell-input-wrapper,
-  .editable-cell-text-wrapper {
-    padding-right: 24px;
-  }
-
-  .editable-cell-text-wrapper {
-    padding: 5px 24px 5px 5px;
-  }
-
-  .editable-cell-icon,
-  .editable-cell-icon-check {
-    position: absolute;
-    right: 0;
-    width: 20px;
-    cursor: pointer;
-  }
-
-  .editable-cell-icon {
-    margin-top: 4px;
-    display: none;
-  }
-
-  .editable-cell-icon-check {
-    line-height: 28px;
-  }
-
-  .editable-cell-icon:hover,
-  .editable-cell-icon-check:hover {
-    color: #108ee9;
-  }
-
-  .editable-add-btn {
-    margin-bottom: 8px;
-  }
-}
-
-.editable-cell:hover .editable-cell-icon {
-  display: inline-block;
-}
-</style>

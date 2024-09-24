@@ -48,7 +48,7 @@ func tcp_transferred(value uint64, sourcePort, destinationAddress string, action
 	}
 	listener, err := net.Listen("tcp", sourcePort)
 	if err != nil {
-		//log.Fatalf("Error listening on port %s: %v", sourcePort, err)
+		log.Fatalf("Error listening on port %s: %v", sourcePort, err)
 		return err
 	}
 	defer listener.Close()

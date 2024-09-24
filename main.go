@@ -29,17 +29,13 @@ func InitForward() {
 	db := database.GetDB()
 	list := models.ForwardGetPortList(db)
 	for _, v := range list {
-		ok, err := common.ValidatePort(v.BindPort)
-		if err != nil {
-			fmt.Printf("InitForward error: %s", err.Error())
-			return
-		}
+		ok, port := common.ValidatePort(v.BindPort)
 		if !ok {
-			fmt.Printf("InitForward error: 端口[%s]已被占用", v.BindPort)
-			// continue
-			return
+			fmt.Printf("配置异常或端口[%s]已被占用", port)
+			continue
+			// return
 		}
-		go common.RunTransferred(0, 10, v.BindPort, v.Destination, func(use_total uint64) {
+		go common.RunTransferred(0, 1, port, v.Destination, func(use_total uint64) {
 			models.ForwardUpdateUse(db, v.ID, use_total)
 		})
 	}
