@@ -1,10 +1,10 @@
 package models
 
 import (
-	"TRAFforward/src/common"
 	"errors"
 	"fmt"
 	"time"
+	"traffic-forward/src/common"
 
 	"github.com/jinzhu/copier"
 	"gorm.io/gorm"

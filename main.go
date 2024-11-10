@@ -1,15 +1,15 @@
 package main
 
 import (
-	"TRAFforward/src"
-	"TRAFforward/src/common"
-	"TRAFforward/src/database"
-	"TRAFforward/src/models"
 	"embed"
 	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
+	"traffic-forward/src"
+	"traffic-forward/src/common"
+	"traffic-forward/src/database"
+	"traffic-forward/src/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,9 +29,9 @@ func InitForward() {
 	db := database.GetDB()
 	list := models.ForwardGetPortList(db)
 	for _, v := range list {
-		ok, port := common.ValidatePort(v.BindPort)
-		if !ok {
-			fmt.Printf("配置异常或端口[%s]已被占用", port)
+		port, err := common.ValidatePort(v.BindPort)
+		if err != nil {
+			fmt.Printf("[配置异常:%s] - %s", port, err.Error())
 			continue
 			// return
 		}

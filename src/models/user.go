@@ -1,8 +1,8 @@
 package models
 
 import (
-	"TRAFforward/src/common"
 	"time"
+	"traffic-forward/src/common"
 
 	"gorm.io/gorm"
 )

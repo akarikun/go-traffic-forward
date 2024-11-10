@@ -89,7 +89,7 @@ func GetPort(sourcePort string) (uint16, string, error) {
 			return 0, "", errors.New("配置异常:" + sourcePort)
 		}
 		if p <= 50000 || p >= 60000 {
-			return 0, "", errors.New("暂只开放50000-60000之间的端口,")
+			return 0, "", errors.New("暂只开放50000-60000之间的端口")
 		}
 
 		if ip == "" || ip == ":" {
@@ -104,17 +104,18 @@ func GetPort(sourcePort string) (uint16, string, error) {
 	}
 }
 
-func ValidatePort(cp string) (bool, string) {
+// 端口是否未被占用
+func ValidatePort(cp string) (string, error) {
 	_, cp, err := GetPort(cp)
 	if err != nil {
-		return false, cp
+		return cp, err
 	}
 	conn, err := net.DialTimeout("tcp", cp, time.Second)
 	if err != nil {
-		return true, cp
+		return cp, err
 	} else {
 		defer conn.Close()
-		return false, cp
+		return cp, nil
 	}
 }
 

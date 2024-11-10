@@ -1,4 +1,4 @@
-module TRAFforward
+module traffic-forward
 
 go 1.22.5
 

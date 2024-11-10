@@ -1,11 +1,11 @@
 package src
 
 import (
-	"TRAFforward/src/common"
-	"TRAFforward/src/database"
-	"TRAFforward/src/models"
 	"fmt"
 	"net/http"
+	"traffic-forward/src/common"
+	"traffic-forward/src/database"
+	"traffic-forward/src/models"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,9 +36,9 @@ func PostForwardHandle(ctx *gin.Context) {
 		return
 	}
 
-	ok, port := common.ValidatePort(body.BindPort)
-	if !ok {
-		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: fmt.Sprintf("配置异常或端口[%s]已被占用", body.BindPort)})
+	port, err := common.ValidatePort(body.BindPort)
+	if err != nil {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: fmt.Sprintf("[配置异常:%s] - %s", body.BindPort, err.Error())})
 		return
 	}
 	body.BindPort = port

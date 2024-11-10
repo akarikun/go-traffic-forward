@@ -1,9 +1,9 @@
 package src
 
 import (
-	"TRAFforward/src/database"
-	"TRAFforward/src/models"
 	"net/http"
+	"traffic-forward/src/database"
+	"traffic-forward/src/models"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
