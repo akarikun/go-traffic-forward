@@ -16,6 +16,8 @@ type Config struct {
 	Addr           string `json:"addr"`
 	SqlType        int    `json:"sqlType"`
 	ConnectionText string `json:"connectionText"`
+	UpdateMinute   int    `json:"updateMinute"`
+	Debugger       bool   `json:"debugger"`
 }
 
 var db *gorm.DB
@@ -56,6 +58,8 @@ func InitConfig() Config {
 			Addr:           "127.0.0.1:8086",
 			SqlType:        0, // 0:sqlite
 			ConnectionText: "./data.db",
+			UpdateMinute:   1,
+			Debugger:       true,
 		}
 		cfgData, err := json.MarshalIndent(cfg, "", "  ")
 		if err != nil {

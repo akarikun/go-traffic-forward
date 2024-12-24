@@ -11,15 +11,16 @@ import (
 )
 
 type Forward struct {
-	ID          uint      `json:"id" gorm:"primarykey;autoIncrement"`
-	UserID      uint      `json:"user_id"`
-	Port        uint16    `json:"port"`
-	BindPort    string    `json:"bind_port"`
-	Destination string    `json:"destination"`
-	Ratio       float32   `json:"ratio"`
-	AddDate     time.Time `json:"add_date"`
-	UseTotal    uint64    `json:"use_total"`
-	IsDel       int       `json:"is_del"`
+	ID                uint      `json:"id" gorm:"primarykey;autoIncrement"`
+	UserID            uint      `json:"user_id"`
+	Port              uint16    `json:"port"`
+	BindPort          string    `json:"bind_port"`
+	Destination       string    `json:"destination"`
+	Ratio             float32   `json:"ratio"`
+	AddDate           time.Time `json:"add_date"`
+	ForwardUpdateDate time.Time `json:"forward_update_date"`
+	UseTotal          uint64    `json:"use_total"`
+	IsDel             int       `json:"is_del"`
 }
 
 type Forward_Query struct {
@@ -63,12 +64,13 @@ func ForwardCreateOrUpdate(db *gorm.DB, req Forward_Req) (Forward, error) {
 	}
 	if req.ID == 0 {
 		m := Forward{
-			BindPort: req.BindPort,
-			Port:     port,
-			Ratio:    1,
-			AddDate:  time.Now(),
-			UseTotal: 0,
-			IsDel:    0,
+			BindPort:          req.BindPort,
+			Port:              port,
+			Ratio:             1,
+			AddDate:           time.Now(),
+			ForwardUpdateDate: time.Now(),
+			UseTotal:          0,
+			IsDel:             0,
 		}
 		copier.Copy(&m, &req)
 		if fmt.Sprintf("%d", port) == m.BindPort {
@@ -103,6 +105,7 @@ func ForwardUpdateUse(db *gorm.DB, id uint, use_total uint64) {
 	var m Forward
 	db.Where(Forward{ID: id}).Find(&m)
 	m.UseTotal += use_total
+	m.ForwardUpdateDate = time.Now()
 	db.Save(m)
 	// db.Where(Forward{ID: id}).Updates(Forward{UseTotal: use_total})
 }

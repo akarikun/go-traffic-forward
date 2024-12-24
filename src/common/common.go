@@ -12,7 +12,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"traffic-forward/src/database"
 
+	"github.com/bytedance/gopkg/util/gopool"
 	"github.com/google/uuid"
 	"github.com/robfig/cron"
 )
@@ -112,47 +114,50 @@ func ValidatePort(cp string) (string, error) {
 	}
 	conn, err := net.DialTimeout("tcp", cp, time.Second)
 	if err != nil {
-		return cp, err
+		return cp, nil
 	} else {
 		defer conn.Close()
-		return cp, nil
+		return cp, errors.New("该端口已被占用")
 	}
 }
 
-type TransferredUpdateFunc func(uint64)
+func RunTransferred(value uint64, sourcePort string, destinationAddress string, action func(uint64)) {
+	cfg := database.InitConfig()
+	minute := cfg.UpdateMinute
 
-func RunTransferred(value uint64, minute int, sourcePort string, destinationAddress string, action TransferredUpdateFunc) {
-	var m sync.Mutex
-	var use uint64 = 1 //值为0时会重置使用量
-	if err := tcp_transferred(value, sourcePort, destinationAddress, func(tm *TransModel) {
-		tm.initFunc = func() {
-			log.Printf("%s任务执行时间：%s", sourcePort, time.Now())
-			c := cron.New()
-			c.AddFunc(fmt.Sprintf("@every %dm", minute), func() {
-				m.Lock()
-				defer m.Unlock()
-				if use > 0 {
-					log.Printf("任务执行时间：%s,%d,%s", time.Now(), use, FormatUse(use))
-					//需要统计流量
-					action(use / 1024 / 1024) //从MB开始统计
-				}
-				use = 0 //重置状态
-			})
-			c.Start()
-		}
-		tm.transfunc = func(_cur int) uint {
-			// log.Printf("reset use %d,%d,%s", use, tm.use, FormatUse(tm.use))
-			if use == 0 {
-				// log.Printf("reset use %d,%s", tm.use, FormatUse(tm.use))
-				use = 1
-				return 1
-			} else {
-				use = tm.use
+	gopool.Go(func() {
+		var m sync.Mutex
+		var use uint64 = 1 //值为0时会重置使用量
+		if err := tcp_transferred(value, sourcePort, destinationAddress, func(tm *TransModel) {
+			tm.initFunc = func() {
+				log.Printf("%s任务执行时间：%s", sourcePort, time.Now())
+				c := cron.New()
+				c.AddFunc(fmt.Sprintf("@every %dm", minute), func() {
+					m.Lock()
+					defer m.Unlock()
+					if use > 0 {
+						log.Printf("任务执行时间：%s,%d,%s", time.Now(), use, FormatUse(use))
+						//需要统计流量
+						go action(use / 1024) //从kb开始统计
+					}
+					use = 0 //重置状态
+				})
+				c.Start()
 			}
-			return 100 //0停止 1重新统计 其他值不处理
+			tm.transfunc = func(_cur int) uint {
+				// log.Printf("reset use %d,%d,%s", use, tm.use, FormatUse(tm.use))
+				if use == 0 {
+					// log.Printf("reset use %d,%s", tm.use, FormatUse(tm.use))
+					use = 1
+					return 1
+				} else {
+					use = tm.use
+				}
+				return 100 //0停止 1重新统计 其他值不处理
+			}
+		}); err != nil {
+			fmt.Printf("tcp_transferred error:%s,%s\r\n", sourcePort, destinationAddress)
+			return
 		}
-	}); err != nil {
-		fmt.Printf("tcp_transferred error:%s,%s\r\n", sourcePort, destinationAddress)
-		return
-	}
+	})
 }

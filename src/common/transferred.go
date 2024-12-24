@@ -6,11 +6,9 @@ import (
 	"log"
 	"net"
 	"sync"
-)
 
-type transInitFunc func()
-type transFunc func(int) uint
-type transferredFunc func(*TransModel)
+	"github.com/bytedance/gopkg/util/gopool"
+)
 
 var translist = make(map[uint16]*TransModel)
 var m sync.Mutex
@@ -19,8 +17,8 @@ type TransModel struct {
 	use       uint64
 	port      uint16
 	listener  net.Listener
-	transfunc transFunc
-	initFunc  transInitFunc
+	transfunc func(int) uint
+	initFunc  func()
 }
 
 func (model *TransModel) Close() {
@@ -38,9 +36,9 @@ func CloseTrans(port uint16) error {
 	return nil
 }
 
-func tcp_transferred(value uint64, sourcePort, destinationAddress string, action transferredFunc) error {
+func tcp_transferred(value uint64, sourcePort, destinationAddress string, action func(*TransModel)) error {
 	// sourcePort := ":8085"
-	// destinationAddress := "127.0.0.1:57890"
+	// destinationAddress := "127.0.0.1:80"
 
 	port, _, err := GetPort(sourcePort)
 	if err != nil {
@@ -66,7 +64,9 @@ func tcp_transferred(value uint64, sourcePort, destinationAddress string, action
 			clientConn = nil
 			return err
 		}
-		go handleConnection(port, clientConn, destinationAddress)
+		gopool.Go(func() {
+			handleConnection(port, clientConn, destinationAddress)
+		})
 	}
 }
 
@@ -101,6 +101,7 @@ func (r *countingReader) Read(p []byte) (int, error) {
 	if n > 0 {
 		m.Lock()
 		defer m.Unlock()
+		// log.Printf("len: %d", n)
 		r.model.use += uint64(n)
 
 		ret := r.model.transfunc(n)

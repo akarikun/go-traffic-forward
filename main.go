@@ -35,13 +35,17 @@ func InitForward() {
 			continue
 			// return
 		}
-		go common.RunTransferred(0, 1, port, v.Destination, func(use_total uint64) {
+		common.RunTransferred(0, port, v.Destination, func(use_total uint64) {
 			models.ForwardUpdateUse(db, v.ID, use_total)
 		})
 	}
 }
 
 func main() {
+	cfg := database.InitConfig()
+	if !cfg.Debugger {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	r := gin.Default()
 	templ := template.Must(template.New("").ParseFS(templatesEmbed, "www/*.html"))
 	r.SetHTMLTemplate(templ)
@@ -53,7 +57,6 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
-	cfg := database.InitConfig()
 	db := database.InitDB(cfg)
 	db.AutoMigrate(
 		&models.User{},

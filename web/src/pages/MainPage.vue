@@ -19,7 +19,7 @@
           <a-table bordered :data-source="dataSource" :columns="columns" :loading="loading">
             <template #bodyCell="{ column, text, record }">
               <template v-if="column.dataIndex === 'add_date'">
-                {{ fmtDate(record.add_date) }}
+                {{ fmtDate(record.add_date) }} <br/> {{ fmtDate(record.forward_update_date) }}
               </template>
               <template v-else-if="column.dataIndex === 'operation'">
                 <a @click="handleEdit(record.id)">编辑</a> |
@@ -28,7 +28,7 @@
                 </a-popconfirm>
               </template>
               <template v-else-if="column.dataIndex === 'use_total'">
-                {{ $.formatBytes(text*1024*1024) }}
+                {{ $.formatBytes(text*1024) }}
               </template>
               <template v-else>
                 {{ text }}
@@ -72,11 +72,11 @@ const columns = [
     dataIndex: 'destination',
   },
   {
-    title: '使用量(MB)',
+    title: '使用量',
     dataIndex: 'use_total',
   },
   {
-    title: '时间',
+    title: '创建时间 / 更新时间',
     dataIndex: 'add_date',
   },
   {
