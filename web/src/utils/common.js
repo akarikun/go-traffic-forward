@@ -1,9 +1,11 @@
 import { message } from 'ant-design-vue';
 
 export const URL = {
-    Login: '/api/login.php',
-    Forward: '/api/forward.php',
-    Forward_DEL: '/api/forward_del.php'
+    Login: '/api/login.do',
+    Forward: '/api/forward.do',
+    Forward_DEL: '/api/forward_del.do',
+    WAF: '/api/waf.do',
+    WAF_STATUS: '/api/waf_status.do'
 }
 
 export const POST = (url, body = {}) => {

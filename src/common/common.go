@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"os/exec"
 	"regexp"
 	"strconv"
 	"strings"
@@ -160,4 +161,23 @@ func RunTransferred(value uint64, sourcePort string, destinationAddress string, 
 			return
 		}
 	})
+}
+
+func UFW_Checked() (string, error) {
+	// cmd := exec.Command("/bin/bash", "-c", "/root/test.sh")
+	cmd := exec.Command("which", "ufw")
+	output, err := cmd.Output()
+	if err != nil {
+		return `请手动操作 apt install ufw`, err
+	}
+	return string(output), nil
+}
+
+func UFW_Status() (string, error) {
+	cmd := exec.Command("ufw", "status", "numbered")
+	output, err := cmd.Output()
+	if err != nil {
+		return `请放开相关端口后再操作 ufw enable`, err
+	}
+	return string(output), nil
 }

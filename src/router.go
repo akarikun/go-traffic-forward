@@ -9,11 +9,11 @@ import (
 	"gorm.io/gorm"
 )
 
-var api_str = "/api"
+var API_BASE_URL = ""
 
 func checkCookie(db *gorm.DB) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		if ctx.Request.URL.Path == api_str+"/login.php" {
+		if ctx.Request.URL.Path == API_BASE_URL+"/login.do" {
 			ctx.Next()
 			return
 		}
@@ -33,10 +33,13 @@ func checkCookie(db *gorm.DB) gin.HandlerFunc {
 	}
 }
 
-func RouterRegister(r *gin.Engine) {
-	g := r.Group(api_str).Use(checkCookie(database.GetDB()))
-	g.POST("/login.php", PostLoginHandle)
-	g.GET("/forward.php", GetForwardHandle)
-	g.POST("/forward.php", PostForwardHandle)
-	g.POST("/forward_del.php", PostForwardDeleteHandle)
+func RouterRegister(r *gin.Engine, cfg database.Config) {
+	API_BASE_URL = cfg.APIBaseUrl
+	g := r.Group(cfg.APIBaseUrl).Use(checkCookie(database.GetDB()))
+	g.POST("/login.do", PostLoginHandle)
+	g.GET("/forward.do", GetForwardHandle)
+	g.POST("/forward.do", PostForwardHandle)
+	g.POST("/forward_del.do", PostForwardDeleteHandle)
+	g.GET("/waf.do", GetWAF)
+	g.GET("/waf_status.do", GetWAFStatus)
 }

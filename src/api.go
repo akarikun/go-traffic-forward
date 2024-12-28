@@ -109,3 +109,21 @@ func PostLoginHandle(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, models.Output{Status: 1, Data: resp})
 }
+
+func GetWAF(ctx *gin.Context) {
+	msg, err := common.UFW_Checked()
+	if err != nil {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: msg, Data: err})
+		return
+	}
+	ctx.JSON(http.StatusOK, models.Output{Status: 1, Data: msg})
+}
+
+func GetWAFStatus(ctx *gin.Context) {
+	msg, err := common.UFW_Status()
+	if err != nil {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: msg, Data: err})
+		return
+	}
+	ctx.JSON(http.StatusOK, models.Output{Status: 1, Data: msg})
+}

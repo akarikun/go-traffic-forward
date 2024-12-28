@@ -54,7 +54,11 @@ func main() {
 	cssFS, _ := fs.Sub(CSSEmbed, "www/css")
 	r.StaticFS("/css", http.FS(cssFS))
 
-	r.GET("/", func(c *gin.Context) {
+	base_url := cfg.BaseUrl
+	if base_url == "/" || base_url == "" {
+		base_url = "/"
+	}
+	r.GET(base_url, func(c *gin.Context) {
 		c.HTML(http.StatusOK, "index.html", gin.H{})
 	})
 	db := database.InitDB(cfg)
@@ -63,7 +67,8 @@ func main() {
 		&models.Forward{},
 	)
 	models.UserCreateAdmin(db)
-	src.RouterRegister(r)
+
+	src.RouterRegister(r, cfg)
 	InitForward()
 	r.Run(cfg.Addr)
 }

@@ -2,17 +2,17 @@
   <FrameView>
     <a-layout>
       <a-layout style="padding: 0 24px 24px">
-        <a-modal v-model:open="open" :title="`${formState.id == 0 ? '添加' : '编辑'}`" @ok="handleOk" okText="确认"
+        <!-- <a-modal v-model:open="open" :title="`${formState.id == 0 ? '添加' : '编辑'}`" @ok="handleOk" okText="确认"
           cancelText="取消">
           <a-form :model="formState" :label-col="{ span: 5 }" :wrapper-col="{ span: 16 }" autocomplete="off">
-            <a-form-item label="端口" name="bind_port" :rules="[{ required: true, message: '端口' }]">
-              <a-input v-model:value="formState.bind_port" />
+            <a-form-item label="端口" name="to" :rules="[{ required: true, message: '端口' }]">
+              <a-input v-model:value="formState.to" />
             </a-form-item>
-            <a-form-item label="转发" name="destination" :rules="[{ required: true, message: '转发' }]">
-              <a-input v-model:value="formState.destination" />
+            <a-form-item label="转发" name="action" :rules="[{ required: true, message: '转发' }]">
+              <a-input v-model:value="formState.action" />
             </a-form-item>
           </a-form>
-        </a-modal>
+        </a-modal> -->
 
         <a-layout-content :style="{ background: '#fff', padding: '24px', margin: 0, minHeight: '280px' }">
           <!-- <a-button class="editable-add-btn" style="margin-bottom: 8px" @click="showModal">添加</a-button> -->
@@ -50,8 +50,9 @@ const router = useRouter()
 
 const formState = ref({
   id: 0,
-  bind_port: "",
-  destination: ""
+  to: "",
+  action: "",
+  from:""
 });
 const loading = ref(true)
 const columns = [
@@ -60,16 +61,16 @@ const columns = [
     dataIndex: 'id'
   },
   {
-    title: '用户',
-    dataIndex: 'user'
+    title: 'To',
+    dataIndex: 'to'
   },
   {
-    title: 'IP',
-    dataIndex: 'ip',
+    title: 'Action',
+    dataIndex: 'action',
   },
   {
-    title: 'Port',
-    dataIndex: 'port',
+    title: 'From',
+    dataIndex: 'from',
   },
   {
     title: '操作',
@@ -83,15 +84,36 @@ const fmtDate = (add_date) => {
 
 const load_data = async () => {
   loading.value = true
-  const res = await $.GET($.URL.Forward)
-  dataSource.value = res.data
+  var res = await $.GET($.URL.WAF)
+  // console.log(res);
+  if (res.status == 1) {
+    var { status, msg, data } = await $.GET($.URL.WAF_STATUS)
+    // console.log(data);
+    // console.log({ status, msg, data });
+    dataSource.value = format_data(data);
+  }
   loading.value = false
 }
 
+const format_data = (str) => {
+  const regex = /\[\s*\d+\].*/g;
+  const matches = str.match(regex);
+
+  if (matches) {
+    const result = matches.map((line) =>
+      line.split(/\s{4,}/)
+    ).map(x => ({ id: x[0].match(/\[\s*(\d+)\]/)[1], to: x[0].match(/(\d+(\s+\(v6\))?)$/i)[1], action: x[1], from: x[2] }))
+    // console.log(result);
+    return result;
+  }
+  return [];
+}
+
+
 load_data();
 const onDelete = async key => {
-  await $.POST($.URL.Forward_DEL, { id: key })
-  await load_data()
+  //await $.POST($.URL.Forward_DEL, { id: key })
+  //await load_data()
 };
 const open = ref(false);
 const showModal = () => {
@@ -99,14 +121,14 @@ const showModal = () => {
   open.value = true;
 };
 const handleOk = async e => {
-  formState.value.id = 0
-  const { status, message, data } = await $.POST($.URL.Forward, formState.value)
-  if (status == 0) {
-    return
-  }
-  formState.value = {}
-  open.value = false
-  await load_data()
+  // formState.value.id = 0
+  // const { status, message, data } = await $.POST($.URL.Forward, formState.value)
+  // if (status == 0) {
+  //   return
+  // }
+  // formState.value = {}
+  // open.value = false
+  // await load_data()
 };
 const handleEdit = (id) => {
   formState.value.id = id

@@ -14,6 +14,8 @@ import (
 
 type Config struct {
 	Addr           string `json:"addr"`
+	BaseUrl        string `json:"baseUrl"`
+	APIBaseUrl     string `json:"apiBaseUrl"`
 	SqlType        int    `json:"sqlType"`
 	ConnectionText string `json:"connectionText"`
 	UpdateMinute   int    `json:"updateMinute"`
@@ -57,8 +59,10 @@ func InitConfig() Config {
 		cfg := Config{
 			Addr:           "127.0.0.1:8086",
 			SqlType:        0, // 0:sqlite
+			BaseUrl:        "",
+			APIBaseUrl:     "/api",
 			ConnectionText: "./data.db",
-			UpdateMinute:   1,
+			UpdateMinute:   1, //端口转发更新时间
 			Debugger:       true,
 		}
 		cfgData, err := json.MarshalIndent(cfg, "", "  ")
