@@ -42,4 +42,6 @@ func RouterRegister(r *gin.Engine, cfg database.Config) {
 	g.POST("/forward_del.do", PostForwardDeleteHandle)
 	g.GET("/waf.do", GetWAF)
 	g.GET("/waf_status.do", GetWAFStatus)
+	g.POST("/waf_update.do", UpdateWAF)
+	g.POST("waf_delete.do", DeleteWAF)
 }

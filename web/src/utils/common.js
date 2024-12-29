@@ -5,7 +5,9 @@ export const URL = {
     Forward: '/api/forward.do',
     Forward_DEL: '/api/forward_del.do',
     WAF: '/api/waf.do',
-    WAF_STATUS: '/api/waf_status.do'
+    WAF_STATUS: '/api/waf_status.do',
+    WAF_UPDATE: '/api/waf_update.do',
+    WAF_DELETE: '/api/waf_delete.do'
 }
 
 export const POST = (url, body = {}) => {

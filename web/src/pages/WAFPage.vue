@@ -2,27 +2,43 @@
   <FrameView>
     <a-layout>
       <a-layout style="padding: 0 24px 24px">
-        <!-- <a-modal v-model:open="open" :title="`${formState.id == 0 ? '添加' : '编辑'}`" @ok="handleOk" okText="确认"
-          cancelText="取消">
+        <a-modal v-model:open="open" title="添加" @ok="handleOk" okText="确认" cancelText="取消">
           <a-form :model="formState" :label-col="{ span: 5 }" :wrapper-col="{ span: 16 }" autocomplete="off">
-            <a-form-item label="端口" name="to" :rules="[{ required: true, message: '端口' }]">
-              <a-input v-model:value="formState.to" />
+            <a-form-item label="编号(可选)" name="id" :rules="[{ message: '编号' }]">
+              <a-input v-model:value="formState.id" />
             </a-form-item>
-            <a-form-item label="转发" name="action" :rules="[{ required: true, message: '转发' }]">
+            <a-form-item label="port(可选)" name="port" :rules="[{ message: 'port' }]">
+              <a-input v-model:value="formState.port" />
+            </a-form-item>
+            <a-form-item label="from(可选)" name="from" :rules="[{ message: 'from' }]">
+              <a-input v-model:value="formState.from" />
+            </a-form-item>
+
+            <a-form-item label="action" name="action">
+              <a-select ref="select" v-model:value="action_value" style="width: 120px" @change="handleChange">
+                <a-select-option value="deny">deny</a-select-option>
+                <a-select-option value="allow">allow</a-select-option>
+              </a-select>
+            </a-form-item>
+
+            <a-form-item label="预览">
+              <label>{{ preview }}</label>
+            </a-form-item>
+
+            <!-- <a-form-item label="转发" name="action" :rules="[{ required: true, message: '转发' }]">
               <a-input v-model:value="formState.action" />
-            </a-form-item>
+            </a-form-item> -->
           </a-form>
-        </a-modal> -->
+        </a-modal>
 
         <a-layout-content :style="{ background: '#fff', padding: '24px', margin: 0, minHeight: '280px' }">
-          <!-- <a-button class="editable-add-btn" style="margin-bottom: 8px" @click="showModal">添加</a-button> -->
+          <a-button class="editable-add-btn" style="margin-bottom: 8px" @click="showModal">添加</a-button>
           <a-table bordered :data-source="dataSource" :columns="columns" :loading="loading">
             <template #bodyCell="{ column, text, record }">
               <template v-if="column.dataIndex === 'add_date'">
                 {{ fmtDate(record.add_date) }}
               </template>
               <template v-else-if="column.dataIndex === 'operation'">
-                <a @click="handleEdit(record.id)">编辑</a> |
                 <a-popconfirm v-if="dataSource.length" title="是否删除,该操作不可恢复" @confirm="onDelete(record.id)">
                   <a>删除</a>
                 </a-popconfirm>
@@ -43,17 +59,43 @@
 <script setup>
 import FrameView from './../components/FrameView.vue';
 import * as $ from '../utils/common'
-import { reactive, ref, toRaw } from 'vue';
+import { reactive, ref, toRaw, watch } from 'vue';
 import { cloneDeep } from 'lodash-es';
 import { useRouter } from 'vue-router'
 const router = useRouter()
 
+const action_value = ref('deny')
+const preview = ref('')
 const formState = ref({
-  id: 0,
-  to: "",
-  action: "",
-  from:""
+  id: "",
+  port: "",
+  from: "",
+  action: ""
 });
+
+watch(formState, (val) => {
+  update_prev();
+}, { deep: true })
+
+const update_prev = () => {
+  const { id, port, from, action } = formState.value;
+  let str = ['ufw']
+  if (id) {
+    str.push(`insert ${id}`);
+  }
+  str.push(`${action_value.value}`)
+  if (from) {
+    str.push(`from ${from}`)
+    if (port) {
+      str.push(`to any port ${port}`)
+    }
+  } else if (port) {
+    str.push(`${port}`)
+  }
+  // console.log(str);
+  preview.value = str.join(' ')
+}
+
 const loading = ref(true)
 const columns = [
   {
@@ -102,18 +144,25 @@ const format_data = (str) => {
   if (matches) {
     const result = matches.map((line) =>
       line.split(/\s{4,}/)
-    ).map(x => ({ id: x[0].match(/\[\s*(\d+)\]/)[1], to: x[0].match(/(\d+(\s+\(v6\))?)$/i)[1], action: x[1], from: x[2] }))
+    ).map(x => {
+      const to = x[0].split('] ');
+      return { id: to[0].replace('[', ''), to: to[1], action: x[1], from: x[2] }
+    })
     // console.log(result);
     return result;
   }
   return [];
 }
 
+const handleChange = key => {
+  update_prev();
+}
+
 
 load_data();
 const onDelete = async key => {
-  //await $.POST($.URL.Forward_DEL, { id: key })
-  //await load_data()
+  await $.POST($.URL.WAF_DELETE, { id: key })
+  await load_data()
 };
 const open = ref(false);
 const showModal = () => {
@@ -121,19 +170,10 @@ const showModal = () => {
   open.value = true;
 };
 const handleOk = async e => {
-  // formState.value.id = 0
-  // const { status, message, data } = await $.POST($.URL.Forward, formState.value)
-  // if (status == 0) {
-  //   return
-  // }
-  // formState.value = {}
-  // open.value = false
-  // await load_data()
+  const res = await $.POST($.URL.WAF_UPDATE, { cmd: preview.value.replace('ufw ', '') })
+  open.value = false;
+  formState.value = {}
+  await load_data()
 };
-const handleEdit = (id) => {
-  formState.value.id = id
-  open.value = true
-  formState.value = dataSource.value.filter(x => x.id == id)[0]
-}
 
 </script>

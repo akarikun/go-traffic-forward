@@ -3,6 +3,7 @@ package src
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"traffic-forward/src/common"
 	"traffic-forward/src/database"
 	"traffic-forward/src/models"
@@ -121,6 +122,49 @@ func GetWAF(ctx *gin.Context) {
 
 func GetWAFStatus(ctx *gin.Context) {
 	msg, err := common.UFW_Status()
+	if err != nil {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: msg, Data: err})
+		return
+	}
+	ctx.JSON(http.StatusOK, models.Output{Status: 1, Data: msg})
+}
+
+func UpdateWAF(ctx *gin.Context) {
+	type CMD struct {
+		Cmd string `json:"cmd"`
+	}
+	var body CMD
+	if err := ctx.ShouldBindBodyWithJSON(&body); err != nil {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: "参数异常"})
+		return
+	}
+	if body.Cmd == "" {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: "参数异常"})
+		return
+	}
+	args := strings.Split(body.Cmd, " ")
+	msg, err := common.UFW_Command(args)
+	if err != nil {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: msg, Data: err})
+		return
+	}
+	ctx.JSON(http.StatusOK, models.Output{Status: 1, Data: msg})
+}
+
+func DeleteWAF(ctx *gin.Context) {
+	type CMD struct {
+		Id string `json:"id"`
+	}
+	var body CMD
+	if err := ctx.ShouldBindBodyWithJSON(&body); err != nil {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: "参数异常"})
+		return
+	}
+	if body.Id == "" {
+		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: "参数异常"})
+		return
+	}
+	msg, err := common.UFW_Command([]string{"-f", "delete", body.Id})
 	if err != nil {
 		ctx.JSON(http.StatusOK, models.Output{Status: 0, Message: msg, Data: err})
 		return

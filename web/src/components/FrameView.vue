@@ -45,7 +45,7 @@ const breadcrumb = ref('')
 const menuItems = ref([
   { title: '转发配置', key: 'main' },
   { title: '用户管理', key: 'user' },
-  { title: 'WAF', key: 'waf' }
+  { title: 'WAF(ufw)', key: 'waf' }
 ])
 const router = useRouter()
 onMounted(() => {

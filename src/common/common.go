@@ -174,10 +174,19 @@ func UFW_Checked() (string, error) {
 }
 
 func UFW_Status() (string, error) {
-	cmd := exec.Command("ufw", "status", "numbered")
+	// cmd := exec.Command("ufw", "status", "numbered")
+	// output, err := cmd.Output()
+	// if err != nil {
+	// 	return `请放开相关端口后再操作 ufw enable`, err
+	// }
+	// return string(output), nil
+	return UFW_Command([]string{"status", "numbered"})
+}
+func UFW_Command(args []string) (string, error) {
+	cmd := exec.Command("ufw", args...)
 	output, err := cmd.Output()
 	if err != nil {
-		return `请放开相关端口后再操作 ufw enable`, err
+		return "", err
 	}
 	return string(output), nil
 }
